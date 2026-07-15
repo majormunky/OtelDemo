@@ -19,8 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	EchoService_Echo_FullMethodName     = "/echo.EchoService/Echo"
-	EchoService_SlowEcho_FullMethodName = "/echo.EchoService/SlowEcho"
+	EchoService_Echo_FullMethodName         = "/echo.EchoService/Echo"
+	EchoService_SlowEcho_FullMethodName     = "/echo.EchoService/SlowEcho"
+	EchoService_FailEcho_FullMethodName     = "/echo.EchoService/FailEcho"
+	EchoService_DoubleTxEcho_FullMethodName = "/echo.EchoService/DoubleTxEcho"
+	EchoService_FixedTxEcho_FullMethodName  = "/echo.EchoService/FixedTxEcho"
 )
 
 // EchoServiceClient is the client API for EchoService service.
@@ -29,6 +32,9 @@ const (
 type EchoServiceClient interface {
 	Echo(ctx context.Context, in *EchoRequest, opts ...grpc.CallOption) (*EchoResponse, error)
 	SlowEcho(ctx context.Context, in *EchoRequest, opts ...grpc.CallOption) (*EchoResponse, error)
+	FailEcho(ctx context.Context, in *EchoRequest, opts ...grpc.CallOption) (*EchoResponse, error)
+	DoubleTxEcho(ctx context.Context, in *EchoRequest, opts ...grpc.CallOption) (*EchoResponse, error)
+	FixedTxEcho(ctx context.Context, in *EchoRequest, opts ...grpc.CallOption) (*EchoResponse, error)
 }
 
 type echoServiceClient struct {
@@ -59,12 +65,45 @@ func (c *echoServiceClient) SlowEcho(ctx context.Context, in *EchoRequest, opts 
 	return out, nil
 }
 
+func (c *echoServiceClient) FailEcho(ctx context.Context, in *EchoRequest, opts ...grpc.CallOption) (*EchoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EchoResponse)
+	err := c.cc.Invoke(ctx, EchoService_FailEcho_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *echoServiceClient) DoubleTxEcho(ctx context.Context, in *EchoRequest, opts ...grpc.CallOption) (*EchoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EchoResponse)
+	err := c.cc.Invoke(ctx, EchoService_DoubleTxEcho_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *echoServiceClient) FixedTxEcho(ctx context.Context, in *EchoRequest, opts ...grpc.CallOption) (*EchoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EchoResponse)
+	err := c.cc.Invoke(ctx, EchoService_FixedTxEcho_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // EchoServiceServer is the server API for EchoService service.
 // All implementations must embed UnimplementedEchoServiceServer
 // for forward compatibility.
 type EchoServiceServer interface {
 	Echo(context.Context, *EchoRequest) (*EchoResponse, error)
 	SlowEcho(context.Context, *EchoRequest) (*EchoResponse, error)
+	FailEcho(context.Context, *EchoRequest) (*EchoResponse, error)
+	DoubleTxEcho(context.Context, *EchoRequest) (*EchoResponse, error)
+	FixedTxEcho(context.Context, *EchoRequest) (*EchoResponse, error)
 	mustEmbedUnimplementedEchoServiceServer()
 }
 
@@ -80,6 +119,15 @@ func (UnimplementedEchoServiceServer) Echo(context.Context, *EchoRequest) (*Echo
 }
 func (UnimplementedEchoServiceServer) SlowEcho(context.Context, *EchoRequest) (*EchoResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SlowEcho not implemented")
+}
+func (UnimplementedEchoServiceServer) FailEcho(context.Context, *EchoRequest) (*EchoResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method FailEcho not implemented")
+}
+func (UnimplementedEchoServiceServer) DoubleTxEcho(context.Context, *EchoRequest) (*EchoResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DoubleTxEcho not implemented")
+}
+func (UnimplementedEchoServiceServer) FixedTxEcho(context.Context, *EchoRequest) (*EchoResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method FixedTxEcho not implemented")
 }
 func (UnimplementedEchoServiceServer) mustEmbedUnimplementedEchoServiceServer() {}
 func (UnimplementedEchoServiceServer) testEmbeddedByValue()                     {}
@@ -138,6 +186,60 @@ func _EchoService_SlowEcho_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EchoService_FailEcho_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EchoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EchoServiceServer).FailEcho(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EchoService_FailEcho_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EchoServiceServer).FailEcho(ctx, req.(*EchoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EchoService_DoubleTxEcho_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EchoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EchoServiceServer).DoubleTxEcho(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EchoService_DoubleTxEcho_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EchoServiceServer).DoubleTxEcho(ctx, req.(*EchoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EchoService_FixedTxEcho_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EchoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EchoServiceServer).FixedTxEcho(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EchoService_FixedTxEcho_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EchoServiceServer).FixedTxEcho(ctx, req.(*EchoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // EchoService_ServiceDesc is the grpc.ServiceDesc for EchoService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +254,18 @@ var EchoService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SlowEcho",
 			Handler:    _EchoService_SlowEcho_Handler,
+		},
+		{
+			MethodName: "FailEcho",
+			Handler:    _EchoService_FailEcho_Handler,
+		},
+		{
+			MethodName: "DoubleTxEcho",
+			Handler:    _EchoService_DoubleTxEcho_Handler,
+		},
+		{
+			MethodName: "FixedTxEcho",
+			Handler:    _EchoService_FixedTxEcho_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

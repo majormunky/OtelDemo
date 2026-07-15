@@ -118,10 +118,13 @@ const file_proto_echo_echo_proto_rawDesc = "" +
 	"\vEchoRequest\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\"(\n" +
 	"\fEchoResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2\x9e\x01\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage2\x93\x03\n" +
 	"\vEchoService\x12B\n" +
 	"\x04Echo\x12\x11.echo.EchoRequest\x1a\x12.echo.EchoResponse\"\x13\x82\xd3\xe4\x93\x02\r:\x01*\"\b/v1/echo\x12K\n" +
-	"\bSlowEcho\x12\x11.echo.EchoRequest\x1a\x12.echo.EchoResponse\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/v1/echo/slowB\x18Z\x16echo-server/proto/echob\x06proto3"
+	"\bSlowEcho\x12\x11.echo.EchoRequest\x1a\x12.echo.EchoResponse\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/v1/echo/slow\x12K\n" +
+	"\bFailEcho\x12\x11.echo.EchoRequest\x1a\x12.echo.EchoResponse\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/v1/echo/fail\x12S\n" +
+	"\fDoubleTxEcho\x12\x11.echo.EchoRequest\x1a\x12.echo.EchoResponse\"\x1c\x82\xd3\xe4\x93\x02\x16:\x01*\"\x11/v1/echo/doubletx\x12Q\n" +
+	"\vFixedTxEcho\x12\x11.echo.EchoRequest\x1a\x12.echo.EchoResponse\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/v1/echo/fixedtxB\x18Z\x16echo-server/proto/echob\x06proto3"
 
 var (
 	file_proto_echo_echo_proto_rawDescOnce sync.Once
@@ -143,10 +146,16 @@ var file_proto_echo_echo_proto_goTypes = []any{
 var file_proto_echo_echo_proto_depIdxs = []int32{
 	0, // 0: echo.EchoService.Echo:input_type -> echo.EchoRequest
 	0, // 1: echo.EchoService.SlowEcho:input_type -> echo.EchoRequest
-	1, // 2: echo.EchoService.Echo:output_type -> echo.EchoResponse
-	1, // 3: echo.EchoService.SlowEcho:output_type -> echo.EchoResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	0, // 2: echo.EchoService.FailEcho:input_type -> echo.EchoRequest
+	0, // 3: echo.EchoService.DoubleTxEcho:input_type -> echo.EchoRequest
+	0, // 4: echo.EchoService.FixedTxEcho:input_type -> echo.EchoRequest
+	1, // 5: echo.EchoService.Echo:output_type -> echo.EchoResponse
+	1, // 6: echo.EchoService.SlowEcho:output_type -> echo.EchoResponse
+	1, // 7: echo.EchoService.FailEcho:output_type -> echo.EchoResponse
+	1, // 8: echo.EchoService.DoubleTxEcho:output_type -> echo.EchoResponse
+	1, // 9: echo.EchoService.FixedTxEcho:output_type -> echo.EchoResponse
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

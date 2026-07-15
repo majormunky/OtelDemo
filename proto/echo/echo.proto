@@ -20,6 +20,27 @@ service EchoService {
       body: "*"
     };
   }
+
+  rpc FailEcho(EchoRequest) returns (EchoResponse) {
+    option (google.api.http) = {
+      post: "/v1/echo/fail"
+      body: "*"
+    };
+  }
+
+  rpc DoubleTxEcho(EchoRequest) returns (EchoResponse) {
+    option (google.api.http) = {
+      post: "/v1/echo/doubletx"
+      body: "*"
+    };
+  }
+
+  rpc FixedTxEcho(EchoRequest) returns (EchoResponse) {
+    option (google.api.http) = {
+      post: "/v1/echo/fixedtx"
+      body: "*"
+    };
+  }
 }
 
 message EchoRequest {
