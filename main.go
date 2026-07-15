@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"net"
@@ -11,69 +9,46 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/metadata"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 
 	pb "gotoolboxserver/proto/echo"
 	"gotoolboxserver/server"
+
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 )
 
-// ---- request ID middleware ----
+// ---- Open telemetry ----
 
-type ctxKey string
-
-const requestIDKey ctxKey = "requestID"
-
-func newRequestID() string {
-	b := make([]byte, 8)
-	rand.Read(b)
-	return hex.EncodeToString(b)
-}
-
-// httpRequestIDMiddleware stamps a request ID into context and logs
-// start/end — this is the seed for whatever the TUI will eventually consume.
-func httpRequestIDMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reqID := newRequestID()
-		ctx := context.WithValue(r.Context(), requestIDKey, reqID)
-
-		r.Header.Set("X-Request-Id", reqID) // grpc-gateway will forward this via its header matcher
-
-		log.Printf("[%s] --> %s %s", reqID, r.Method, r.URL.Path)
-		next.ServeHTTP(w, r.WithContext(ctx))
-		log.Printf("[%s] <-- done", reqID)
-	})
-}
-
-// grpcRequestIDInterceptor does the same thing for direct gRPC calls
-// (not routed through the HTTP gateway).
-func grpcRequestIDInterceptor(
-	ctx context.Context,
-	req interface{},
-	info *grpc.UnaryServerInfo,
-	handler grpc.UnaryHandler,
-) (interface{}, error) {
-	reqID := newRequestID()
-	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		if ids := md.Get("x-request-id"); len(ids) > 0 {
-			reqID = ids[0]
-		}
+func initTracer() *sdktrace.TracerProvider {
+	exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	ctx = context.WithValue(ctx, requestIDKey, reqID)
-
-	log.Printf("[%s] --> %s", reqID, info.FullMethod)
-	resp, err := handler(ctx, req)
-	log.Printf("[%s] <-- done (err=%v)", reqID, err)
-	return resp, err
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName("echo-server"),
+		)),
+	)
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	return tp
 }
 
-func customHeaderMatcher(key string) (string, bool) {
-	if key == "X-Request-Id" {
-		return "x-request-id", true
+func shutdownTracer(tp *sdktrace.TracerProvider) {
+	if err := tp.Shutdown(context.Background()); err != nil {
+		log.Printf("error shutting down tracer provider: %v", err)
 	}
-	return runtime.DefaultHeaderMatcher(key)
 }
 
 // ---- server startup ----
@@ -85,7 +60,7 @@ func runGRPC() {
 	}
 
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(grpcRequestIDInterceptor),
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 	)
 	pb.RegisterEchoServiceServer(grpcServer, server.NewEchoServer())
 
@@ -97,23 +72,29 @@ func runGRPC() {
 
 func runHTTP() {
 	ctx := context.Background()
-	mux := runtime.NewServeMux(
-		runtime.WithIncomingHeaderMatcher(customHeaderMatcher),
-	)
+	mux := runtime.NewServeMux()
 
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	}
 	err := pb.RegisterEchoServiceHandlerFromEndpoint(ctx, mux, "localhost:50051", opts)
 	if err != nil {
 		log.Fatalf("failed to register gateway: %v", err)
 	}
 
+	handler := otelhttp.NewHandler(mux, "echo-gateway")
+
 	log.Println("HTTP gateway listening on :8080")
-	if err := http.ListenAndServe(":8080", httpRequestIDMiddleware(mux)); err != nil {
+	if err := http.ListenAndServe(":8080", handler); err != nil {
 		log.Fatalf("http serve error: %v", err)
 	}
 }
 
 func main() {
+	tp := initTracer()
+	defer shutdownTracer(tp)
+
 	go runGRPC()
 	runHTTP() // blocks
 	fmt.Println("shutting down")
