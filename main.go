@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	pb "gotoolboxserver/proto/echo"
 	"gotoolboxserver/server"
@@ -60,7 +61,7 @@ func shutdownTracer(tp *sdktrace.TracerProvider) {
 
 // ---- server startup ----
 
-func runGRPC() {
+func runGRPC(pool *pgxpool.Pool) {
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -69,7 +70,7 @@ func runGRPC() {
 	grpcServer := grpc.NewServer(
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 	)
-	pb.RegisterEchoServiceServer(grpcServer, server.NewEchoServer())
+	pb.RegisterEchoServiceServer(grpcServer, server.NewEchoServer(pool))
 
 	log.Println("gRPC server listening on :50051")
 	if err := grpcServer.Serve(lis); err != nil {
@@ -102,7 +103,11 @@ func main() {
 	tp := initTracer()
 	defer shutdownTracer(tp)
 
-	go runGRPC()
+	ctx := context.Background()
+	pool := initDB(ctx)
+	defer pool.Close()
+
+	go runGRPC(pool)
 	runHTTP() // blocks
 	fmt.Println("shutting down")
 }
