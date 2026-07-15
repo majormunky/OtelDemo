@@ -39,9 +39,10 @@ func (s *EchoServer) Echo(ctx context.Context, req *pb.EchoRequest) (*pb.EchoRes
 		return nil, fmt.Errorf("message cannot be empty")
 	}
 
-	if err := s.logEchoTwice(ctx, req.Message); err != nil {
+	_, err := s.db.Exec(ctx, "INSERT INTO echo_log (message) VALUES ($1)", req.Message)
+	if err != nil {
 		span.SetStatus(codes.Error, "failed to log echo")
-		return nil, err
+		return nil, fmt.Errorf("db insert failed: %w", err)
 	}
 
 	result := fmt.Sprintf("echo: %s", req.Message)
@@ -50,6 +51,28 @@ func (s *EchoServer) Echo(ctx context.Context, req *pb.EchoRequest) (*pb.EchoRes
 	return &pb.EchoResponse{
 		Message: result,
 	}, nil
+}
+
+func (s *EchoServer) SlowEcho(ctx context.Context, req *pb.EchoRequest) (*pb.EchoResponse, error) {
+	ctx, span := tracer.Start(ctx, "EchoServer.SlowEcho")
+	defer span.End()
+
+	span.SetAttributes(attribute.String("echo.input_message", req.Message))
+
+	if req.Message == "" {
+		span.SetStatus(codes.Error, "empty message received")
+		return nil, fmt.Errorf("message cannot be empty")
+	}
+
+	if err := s.logEchoTwice(ctx, req.Message); err != nil {
+		span.SetStatus(codes.Error, "failed to log echo")
+		return nil, err
+	}
+
+	result := fmt.Sprintf("echo: %s", req.Message)
+	span.SetAttributes(attribute.String("echo.output_message", result))
+
+	return &pb.EchoResponse{Message: result}, nil
 }
 
 // logEchoTwice demonstrates a transaction spanning two inserts, so we can see
@@ -69,6 +92,12 @@ func (s *EchoServer) logEchoTwice(ctx context.Context, message string) error {
 	if err != nil {
 		span.SetStatus(codes.Error, "first insert failed")
 		return fmt.Errorf("first insert: %w", err)
+	}
+
+	_, err = tx.Exec(ctx, "SELECT pg_sleep(2)")
+	if err != nil {
+		span.SetStatus(codes.Error, "sleep failed")
+		return fmt.Errorf("sleep: %w", err)
 	}
 
 	_, err = tx.Exec(ctx, "INSERT INTO echo_log (message) VALUES ($1)", message+" (copy)")

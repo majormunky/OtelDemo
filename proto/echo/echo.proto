@@ -13,6 +13,13 @@ service EchoService {
       body: "*"
     };
   }
+
+  rpc SlowEcho(EchoRequest) returns (EchoResponse) {
+    option (google.api.http) = {
+      post: "/v1/echo/slow"
+      body: "*"
+    };
+  }
 }
 
 message EchoRequest {

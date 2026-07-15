@@ -118,9 +118,10 @@ const file_proto_echo_echo_proto_rawDesc = "" +
 	"\vEchoRequest\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\"(\n" +
 	"\fEchoResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2Q\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage2\x9e\x01\n" +
 	"\vEchoService\x12B\n" +
-	"\x04Echo\x12\x11.echo.EchoRequest\x1a\x12.echo.EchoResponse\"\x13\x82\xd3\xe4\x93\x02\r:\x01*\"\b/v1/echoB\x18Z\x16echo-server/proto/echob\x06proto3"
+	"\x04Echo\x12\x11.echo.EchoRequest\x1a\x12.echo.EchoResponse\"\x13\x82\xd3\xe4\x93\x02\r:\x01*\"\b/v1/echo\x12K\n" +
+	"\bSlowEcho\x12\x11.echo.EchoRequest\x1a\x12.echo.EchoResponse\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/v1/echo/slowB\x18Z\x16echo-server/proto/echob\x06proto3"
 
 var (
 	file_proto_echo_echo_proto_rawDescOnce sync.Once
@@ -141,9 +142,11 @@ var file_proto_echo_echo_proto_goTypes = []any{
 }
 var file_proto_echo_echo_proto_depIdxs = []int32{
 	0, // 0: echo.EchoService.Echo:input_type -> echo.EchoRequest
-	1, // 1: echo.EchoService.Echo:output_type -> echo.EchoResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	0, // 1: echo.EchoService.SlowEcho:input_type -> echo.EchoRequest
+	1, // 2: echo.EchoService.Echo:output_type -> echo.EchoResponse
+	1, // 3: echo.EchoService.SlowEcho:output_type -> echo.EchoResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
