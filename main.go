@@ -18,7 +18,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -28,9 +28,15 @@ import (
 // ---- Open telemetry ----
 
 func initTracer() *sdktrace.TracerProvider {
-	exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+	ctx := context.Background()
+
+	exporter, err := otlptracegrpc.New(
+		ctx,
+		otlptracegrpc.WithEndpoint("localhost:4317"),
+		otlptracegrpc.WithInsecure(),
+	)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to create exporter: %v", err)
 	}
 
 	tp := sdktrace.NewTracerProvider(
@@ -40,6 +46,7 @@ func initTracer() *sdktrace.TracerProvider {
 			semconv.ServiceName("echo-server"),
 		)),
 	)
+
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 	return tp
