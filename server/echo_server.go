@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"google.golang.org/grpc/metadata"
 )
 
 var tracer = otel.Tracer("echo-server/handler")
@@ -29,6 +30,12 @@ func NewEchoServer(db *pgxpool.Pool) *EchoServer {
 func (s *EchoServer) Echo(ctx context.Context, req *pb.EchoRequest) (*pb.EchoResponse, error) {
 	_, span := tracer.Start(ctx, "EchoServer.Echo")
 	defer span.End()
+
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if labels := md.Get("x-demo-label"); len(labels) > 0 {
+			span.SetAttributes(attribute.String("demo.label", labels[0]))
+		}
+	}
 
 	span.SetAttributes(
 		attribute.String("echo.input_message", req.Message),

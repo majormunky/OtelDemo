@@ -19,11 +19,13 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // ---- Open telemetry ----
@@ -59,6 +61,31 @@ func shutdownTracer(tp *sdktrace.TracerProvider) {
 	}
 }
 
+type ctxKey string
+
+const demoLabelKey ctxKey = "demoLabel"
+
+func customHeaderMatcher(key string) (string, bool) {
+	if key == "X-Demo-Label" {
+		return "x-demo-label", true
+	}
+	return runtime.DefaultHeaderMatcher(key)
+}
+
+func demoLabelMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		label := r.Header.Get("X-Demo-Label")
+
+		if label != "" {
+			span := trace.SpanFromContext(r.Context())
+			span.SetAttributes(attribute.String("demo.label", label))
+		}
+
+		ctx := context.WithValue(r.Context(), demoLabelKey, label)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 // ---- server startup ----
 
 func runGRPC(pool *pgxpool.Pool) {
@@ -80,7 +107,9 @@ func runGRPC(pool *pgxpool.Pool) {
 
 func runHTTP() {
 	ctx := context.Background()
-	mux := runtime.NewServeMux()
+	mux := runtime.NewServeMux(
+		runtime.WithIncomingHeaderMatcher(customHeaderMatcher),
+	)
 
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -91,9 +120,15 @@ func runHTTP() {
 		log.Fatalf("failed to register gateway: %v", err)
 	}
 
-	handler := otelhttp.NewHandler(mux, "echo-gateway",
+	handler := otelhttp.NewHandler(
+		demoLabelMiddleware(mux),
+		"echo-gateway",
 		otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
-			return r.Method + " " + r.URL.Path
+			label := r.Header.Get("X-Demo-Label")
+			if label != "" {
+				return r.Method + " " + r.URL.Path + " [" + label + "]"
+			}
+			return r.Method + " - " + r.URL.Path
 		}),
 	)
 
