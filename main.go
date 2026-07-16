@@ -91,7 +91,11 @@ func runHTTP() {
 		log.Fatalf("failed to register gateway: %v", err)
 	}
 
-	handler := otelhttp.NewHandler(mux, "echo-gateway")
+	handler := otelhttp.NewHandler(mux, "echo-gateway",
+		otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
+			return r.Method + " " + r.URL.Path
+		}),
+	)
 
 	log.Println("HTTP gateway listening on :8080")
 	if err := http.ListenAndServe(":8080", handler); err != nil {
